@@ -10,3 +10,8 @@ Multiple targets: Motion.js can animate multiple objects at once, and lets you g
 
 ## Getting started
 To use Motion.js in your PlayCanvas project, simply add the motion.js file to your project and include it in your script:
+
+//TODO
+
+## Tutorial Video
+https://youtu.be/EpCqspTkZxI
