@@ -71,7 +71,6 @@ Motion.attributes.add('events', {
     array : true
 });
 
-
 Motion.attributes.add('lerp', { type : 'number', default : 0.5 });
 
 Motion.prototype.initialize = function() {
@@ -94,18 +93,19 @@ Motion.prototype.initialize = function() {
     }
     
     this.app.on(
-        'Motion:' + this.entity.name, 
+        'Motion', 
         this.onMotionPlay, 
         this
     );
 
     this.app.on(
-        'Motion:' + this.entity.name + '@Stop', 
+        'Motion:Stop', 
         this.onMotionStop, 
         this
     );
 
     this.entity.on('Motion', this.onMotionPlay, this);
+    this.entity.on('Motion:Stop', this.onMotionStop, this);
 };
 
 Motion.prototype.findMotion = function(name) {
@@ -123,8 +123,12 @@ Motion.prototype.findMotion = function(name) {
 };
 
 Motion.prototype.onMotionStop = function(name) {
-    //this.isPlaying = false;
-    this.isReverting = true;
+    if(this.currentMotion && this.currentMotion.name == name){
+        this.isPlaying = false;
+        this.currentMotion = false;
+    }
+    
+    //this.isReverting = true;
 };
 
 Motion.prototype.onMotionPlay = function(name, ignore) {
@@ -137,6 +141,10 @@ Motion.prototype.onMotionPlay = function(name, ignore) {
     }
 
     var motion = this.findMotion(name);
+
+    if(!motion){
+        return false;
+    }
     
     this.isPlaying = true;
     this.timestamp = 0;
@@ -232,24 +240,6 @@ Motion.prototype.update = function(dt) {
     );
     
     this.triggerEvents(dt);
-
-    if(!this.isReverting){
-        this.timestamp+=dt * this.currentMotion.speed;
-    }else{
-        this.timestamp = pc.math.lerp(
-            this.timestamp,
-            0,
-            0.1
-        );
-
-        if(this.timestamp < 0.05){
-            this.triggerEndEvent(this.currentMotion);
-
-            this.currentMotion = false;
-            this.isPlaying     = false;
-            this.isReverting   = false;
-        }
-    }
     
     if(this.timestamp >= 1.0){
         this.isPlaying = false;
@@ -257,7 +247,25 @@ Motion.prototype.update = function(dt) {
         if(this.currentMotion.loop){
             this.onMotionPlay(this.currentMotion.name, true);
         }else{
+            this.triggerEndEvent(this.currentMotion);
             this.currentMotion = false;
         }
     }
+
+    if(!this.isReverting){
+        this.timestamp+=dt * this.currentMotion.speed;
+    }else{
+        this.timestamp-=dt * this.currentMotion.speed;
+
+        if(this.timestamp <= 0.0){
+            this.triggerEndEvent(this.currentMotion);
+
+            this.currentMotion = false;
+            this.isPlaying     = false;
+            this.isReverting   = false;
+        }
+    }
+
+    this.timestamp = Math.max(this.timestamp, 0.0);
+    this.timestamp = Math.min(this.timestamp, 1.0);
 };
